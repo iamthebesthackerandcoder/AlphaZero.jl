@@ -1,0 +1,48 @@
+# Configuration file for Checkers game
+
+[game]
+name = "Checkers"
+description = "American Checkers (English Draughts) implementation for AlphaZero.jl"
+version = "1.0.0"
+board_size = 8
+num_positions = 32
+
+[rules]
+force_captures = true
+multiple_jumps = true
+king_promotion = true
+backward_moves_for_kings = true
+
+[neural_network]
+# State representation
+state_channels = 8
+state_height = 8
+state_width = 4
+flatten_state = false
+
+# Action space
+max_actions = 1024  # 32 * 32 possible from-to combinations
+use_action_masking = true
+
+[training]
+# These will be used in params.jl
+max_game_length = 200
+draw_moves = 50
+
+[display]
+unicode_pieces = true
+show_coordinates = true
+color_output = true
+
+[heuristics]
+# Piece values for evaluation
+man_value = 1.0
+king_value = 3.0
+position_bonus = 0.1
+center_bonus = 0.2
+
+[performance]
+# Optimization settings
+use_static_arrays = true
+precompute_moves = false
+cache_evaluations = true
