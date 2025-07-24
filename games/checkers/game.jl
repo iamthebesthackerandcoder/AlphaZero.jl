@@ -23,7 +23,7 @@ mutable struct CheckersEnv <: GI.AbstractGameEnv
     
     # Game tracking
     repetition_hash::UInt64   # Hash for detecting repetitions
-    move_stack::Vector{Move}  # Stack of moves played
+    move_stack::Vector{ReversibleMove}  # Stack of reversible moves played
     outcome::Union{Nothing, Int8}  # Nothing if game ongoing, 1 = white wins, -1 = black wins, 0 = draw
     
     # Cached values for efficiency
@@ -37,7 +37,7 @@ function GI.init(::CheckersSpec)
         INITIAL_BOARD,
         WHITE,
         0x0000000000000000,  # Initial hash
-        Vector{Move}(),
+        Vector{ReversibleMove}(),
         nothing,
         false,
         Vector{Bool}(undef, NUM_POSITIONS * NUM_POSITIONS)
@@ -87,6 +87,43 @@ function GI.white_reward(g::CheckersEnv)
     return get_white_reward(g.board, g.side_to_move)
 end
 
+# Apply a move in the environment
+function apply!(env::CheckersEnv, move::Move)
+    # Create a reversible move with all necessary information for undo
+    reversible_move = create_reversible_move(env.board, move)
+    
+    # Store the reversible move on the stack for undo purposes
+    push!(env.move_stack, reversible_move)
+
+    # Update the board state with multi-captures and promotion
+    env.board = apply_move(env.board, move)
+
+    # Switch the side to move
+    env.side_to_move = !env.side_to_move
+
+    # Update repetition hash
+    env.repetition_hash = hash((env.board, env.side_to_move))
+
+    # Update game state to handle termination and action masking
+    update_game_state!(env)
+end
+
+# Undo the last move for reversibility
+function undo!(env::CheckersEnv)
+    # Pop the last move from the stack
+    move = pop!(env.move_stack)
+
+    # Reverse the move
+    env.board = revert_move(env.board, move)
+
+    # Switch the side to move back
+    env.side_to_move = !env.side_to_move
+
+    # Update repetition hash and game state
+    env.repetition_hash = hash((env.board, env.side_to_move))
+    update_game_state!(env)
+end
+
 # Play a move
 function GI.play!(g::CheckersEnv, action_idx::Int)
     # Convert action index to move
@@ -107,15 +144,8 @@ function GI.play!(g::CheckersEnv, action_idx::Int)
         error("Invalid move: $(move.from) -> $(move.to)")
     end
     
-    # Store move in move stack
-    push!(g.move_stack, actual_move)
-    
-    # Apply the move
-    g.board = apply_move(g.board, actual_move)
-    g.side_to_move = !g.side_to_move
-    
-    # Update game state
-    update_game_state!(g)
+    # Use the apply! function for consistency
+    apply!(g, actual_move)
 end
 
 # Helper function to update game state after a move

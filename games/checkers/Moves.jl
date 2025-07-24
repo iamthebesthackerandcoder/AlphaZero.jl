@@ -193,6 +193,105 @@ function apply_move(board::Board, move::Move)
     return new_board
 end
 
+# Revert a move (for undo functionality)
+# This requires storing additional information about the move
+struct ReversibleMove
+    from::Int  # Source position (1-32)
+    to::Int    # Destination position (1-32)
+    captures::Vector{Int}  # Positions of captured pieces
+    captured_pieces::Vector{Int8}  # The actual captured pieces
+    was_promoted::Bool  # Whether this move resulted in a promotion
+    original_piece::Int8  # The original piece before promotion
+end
+
+# Create a reversible move from a regular move and board state
+function create_reversible_move(board::Board, move::Move)
+    piece = board[move.from]
+    captured_pieces = Int8[]
+    
+    # Store the captured pieces
+    for cap_pos in move.captures
+        push!(captured_pieces, board[cap_pos])
+    end
+    
+    # Check if this move would result in a promotion
+    dest_row, _ = pos_to_coords(move.to)
+    was_promoted = false
+    if piece == WHITE_MAN && dest_row == 1
+        was_promoted = true
+    elseif piece == BLACK_MAN && dest_row == BOARD_SIZE
+        was_promoted = true
+    end
+    
+    return ReversibleMove(move.from, move.to, move.captures, captured_pieces, was_promoted, piece)
+end
+
+# Revert a move using stored information
+function revert_move(board::Board, rmove::ReversibleMove)
+    new_board = board
+    
+    # Move the piece back
+    # If it was promoted, restore the original piece type
+    piece_to_restore = rmove.was_promoted ? rmove.original_piece : board[rmove.to]
+    new_board = setindex(new_board, piece_to_restore, rmove.from)
+    new_board = setindex(new_board, EMPTY, rmove.to)
+    
+    # Restore captured pieces
+    for (i, cap_pos) in enumerate(rmove.captures)
+        new_board = setindex(new_board, rmove.captured_pieces[i], cap_pos)
+    end
+    
+    return new_board
+end
+
+# Simplified revert_move that works with regular Move struct
+# This version reconstructs the original state by analyzing the current board
+function revert_move(board::Board, move::Move)
+    new_board = board
+    
+    # Get the piece that's currently at the destination
+    moved_piece = board[move.to]
+    
+    # Determine what the original piece was before any promotion
+    original_piece = moved_piece
+    dest_row, _ = pos_to_coords(move.to)
+    from_row, _ = pos_to_coords(move.from)
+    
+    # If this is a king on the back rank and it came from a non-back rank, it was promoted
+    if moved_piece == WHITE_KING && dest_row == 1 && from_row != 1
+        original_piece = WHITE_MAN
+    elseif moved_piece == BLACK_KING && dest_row == BOARD_SIZE && from_row != BOARD_SIZE
+        original_piece = BLACK_MAN
+    end
+    
+    # Move the piece back
+    new_board = setindex(new_board, original_piece, move.from)
+    new_board = setindex(new_board, EMPTY, move.to)
+    
+    # For captured pieces, we need to determine what they were
+    # This is a limitation - we'll need to reconstruct or store this information
+    # For now, we'll assume captured pieces were of the opposite color as the moving piece
+    player = piece_owner(original_piece)
+    opponent = !player
+    
+    for cap_pos in move.captures
+        # We need to guess what piece was captured
+        # This is imperfect - ideally we'd store this information
+        cap_row, _ = pos_to_coords(cap_pos)
+        
+        # Heuristic: if on back rank, it was likely a king, otherwise a man
+        if (opponent == WHITE && cap_row == 1) || (opponent == BLACK && cap_row == BOARD_SIZE)
+            captured_piece = opponent == WHITE ? WHITE_KING : BLACK_KING
+        else
+            captured_piece = opponent == WHITE ? WHITE_MAN : BLACK_MAN
+        end
+        
+        new_board = setindex(new_board, captured_piece, cap_pos)
+    end
+    
+    return new_board
+end
+
 # Convert Move to CheckersMove
 function move_to_checkers_move(move::Move)
     return CheckersMove(move.from, move.to, move.captures)
