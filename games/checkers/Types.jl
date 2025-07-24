@@ -91,7 +91,7 @@ end
 # Convert between 32-square indexing and 8x8 board coordinates
 function pos_to_coords(pos::Int)
     row = (pos - 1) ÷ 4 + 1
-    col = 2 * ((pos - 1) % 4) + (row % 2 == 0 ? 2 : 1)
+    col = 2 * ((pos - 1) % 4) + (row % 2 == 0 ? 1 : 2)
     return (row, col)
 end
 
@@ -100,7 +100,7 @@ function coords_to_pos(row::Int, col::Int)
     if (row + col) % 2 == 0
         error("Invalid coordinates for checkers: must be dark square")
     end
-    return (row - 1) * 4 + (col - (row % 2 == 0 ? 1 : 0)) ÷ 2 + 1
+    return (row - 1) * 4 + (col - (row % 2 == 0 ? 0 : 1)) ÷ 2 + 1
 end
 
 # Check if coordinates are valid dark squares

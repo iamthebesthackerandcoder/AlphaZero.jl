@@ -1,5 +1,19 @@
 # Move generation and validation for Checkers
 
+# Enhanced move structure with capture flag
+struct CheckersMove
+    from::Int  # Source position (1-32)
+    to::Int    # Destination position (1-32)
+    captures::Vector{Int}  # Positions of captured pieces
+    is_capture::Bool  # Flag to mark capture moves
+end
+
+# Constructor for simple moves
+CheckersMove(from::Int, to::Int) = CheckersMove(from, to, Int[], false)
+
+# Constructor for capture moves
+CheckersMove(from::Int, to::Int, captures::Vector{Int}) = CheckersMove(from, to, captures, !isempty(captures))
+
 # Get adjacent diagonal positions for a given position
 function get_diagonal_neighbors(pos::Int)
     row, col = pos_to_coords(pos)
@@ -37,7 +51,7 @@ function get_jump_positions(pos::Int)
 end
 
 # Check if a piece can move in a given direction (for men vs kings)
-function can_move_direction(piece::PieceType, from_pos::Int, to_pos::Int)
+function can_move_direction(piece::Int8, from_pos::Int, to_pos::Int)
     if is_king(piece)
         return true  # Kings can move in any direction
     end
@@ -177,4 +191,107 @@ function apply_move(board::Board, move::Move)
     end
     
     return new_board
+end
+
+# Convert Move to CheckersMove
+function move_to_checkers_move(move::Move)
+    return CheckersMove(move.from, move.to, move.captures)
+end
+
+# Generate CheckersMove simple moves for a piece
+function generate_checkers_simple_moves(board::Board, pos::Int)
+    piece = board[pos]
+    if is_empty(piece)
+        return CheckersMove[]
+    end
+    
+    moves = CheckersMove[]
+    
+    for neighbor in get_diagonal_neighbors(pos)
+        if is_empty(board[neighbor]) && can_move_direction(piece, pos, neighbor)
+            push!(moves, CheckersMove(pos, neighbor))
+        end
+    end
+    
+    return moves
+end
+
+# Generate CheckersMove capture moves for a piece (recursive for multiple jumps)
+function generate_checkers_capture_moves(board::Board, pos::Int, captured_so_far::Vector{Int}=Int[])
+    piece = board[pos]
+    if is_empty(piece)
+        return CheckersMove[]
+    end
+    
+    moves = CheckersMove[]
+    player = piece_owner(piece)
+    
+    # Create a temporary board with captured pieces removed
+    temp_board = board
+    for cap_pos in captured_so_far
+        temp_board = setindex(temp_board, EMPTY, cap_pos)
+    end
+    
+    found_capture = false
+    
+    for (dest_pos, mid_pos) in get_jump_positions(pos)
+        mid_piece = temp_board[mid_pos]
+        
+        # Check if we can capture this piece
+        if !is_empty(mid_piece) && 
+           piece_owner(mid_piece) != player && 
+           is_empty(temp_board[dest_pos]) &&
+           can_move_direction(piece, pos, dest_pos) &&
+           mid_pos ∉ captured_so_far  # Don't capture the same piece twice
+            
+            found_capture = true
+            new_captured = [captured_so_far; mid_pos]
+            
+            # Check for additional captures from the destination
+            additional_moves = generate_checkers_capture_moves(temp_board, dest_pos, new_captured)
+            
+            if isempty(additional_moves)
+                # No more captures possible, this is a complete move
+                push!(moves, CheckersMove(pos, dest_pos, new_captured))
+            else
+                # Add all the extended capture sequences
+                for add_move in additional_moves
+                    push!(moves, CheckersMove(pos, add_move.to, add_move.captures))
+                end
+            end
+        end
+    end
+    
+    return moves
+end
+
+# Main function: Generate all legal moves for the current player
+# Returns Vector{CheckersMove} with captures marked and simple moves included even when captures exist
+function legal_moves(env)
+    board = env.board
+    player = env.side_to_move
+    
+    capture_moves = CheckersMove[]
+    simple_moves = CheckersMove[]
+    
+    # Find all pieces belonging to the current player
+    for pos in 1:NUM_POSITIONS
+        piece = board[pos]
+        if !is_empty(piece) && piece_owner(piece) == player
+            # Generate capture moves
+            captures = generate_checkers_capture_moves(board, pos)
+            append!(capture_moves, captures)
+            
+            # Generate simple moves - always include them (captures are NOT mandatory)
+            simples = generate_checkers_simple_moves(board, pos)
+            append!(simple_moves, simples)
+        end
+    end
+    
+    # Include both capture and simple moves (captures are NOT mandatory in this implementation)
+    all_moves = CheckersMove[]
+    append!(all_moves, capture_moves)
+    append!(all_moves, simple_moves)
+    
+    return all_moves
 end
