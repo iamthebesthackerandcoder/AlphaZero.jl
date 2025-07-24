@@ -10,9 +10,6 @@ end
 # Constructor for simple moves
 Move(from::Int, to::Int) = Move(from, to, Int[])
 
-# Constructor for capture moves
-Move(from::Int, to::Int, captures::Vector{Int}) = Move(from, to, captures)
-
 # Get adjacent diagonal positions for a given position
 function get_diagonal_neighbors(pos::Int)
     row, col = pos_to_coords(pos)
