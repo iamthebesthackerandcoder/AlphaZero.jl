@@ -34,25 +34,31 @@ function has_legal_moves(board::Board, player::Player)
     return !isempty(generate_all_moves(board, player))
 end
 
-# Determine the winner of the game
+# Determine the winner of the game (board-only version for compatibility)
 function determine_winner(board::Board, current_player::Player)
     # A player loses if they have no pieces or no legal moves
     if !has_pieces(board, current_player) || !has_legal_moves(board, current_player)
         return !current_player  # The other player wins
     end
-    
+
     opponent = !current_player
     if !has_pieces(board, opponent) || !has_legal_moves(board, opponent)
         return current_player
     end
-    
+
     return nothing  # Game not over
 end
 
-# Check if the game is over
+
+
+
+
+# Check if the game is over (board-only version for compatibility)
 function is_game_over(board::Board, current_player::Player)
     return !isnothing(determine_winner(board, current_player))
 end
+
+
 
 # Get the reward for the white player (1.0 if white wins, -1.0 if black wins, 0.0 for draw)
 function get_white_reward(board::Board, current_player::Player)

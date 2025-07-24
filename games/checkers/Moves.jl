@@ -202,18 +202,19 @@ struct ReversibleMove
     captured_pieces::Vector{Int8}  # The actual captured pieces
     was_promoted::Bool  # Whether this move resulted in a promotion
     original_piece::Int8  # The original piece before promotion
+    previous_halfmove_clock::Int  # Previous halfmove clock value for undo
 end
 
 # Create a reversible move from a regular move and board state
-function create_reversible_move(board::Board, move::Move)
+function create_reversible_move(board::Board, move::Move, halfmove_clock::Int)
     piece = board[move.from]
     captured_pieces = Int8[]
-    
+
     # Store the captured pieces
     for cap_pos in move.captures
         push!(captured_pieces, board[cap_pos])
     end
-    
+
     # Check if this move would result in a promotion
     dest_row, _ = pos_to_coords(move.to)
     was_promoted = false
@@ -222,8 +223,8 @@ function create_reversible_move(board::Board, move::Move)
     elseif piece == BLACK_MAN && dest_row == BOARD_SIZE
         was_promoted = true
     end
-    
-    return ReversibleMove(move.from, move.to, move.captures, captured_pieces, was_promoted, piece)
+
+    return ReversibleMove(move.from, move.to, move.captures, captured_pieces, was_promoted, piece, halfmove_clock)
 end
 
 # Revert a move using stored information

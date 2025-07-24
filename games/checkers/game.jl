@@ -24,6 +24,9 @@ mutable struct CheckersEnv <: GI.AbstractGameEnv
     # Game tracking
     repetition_hash::UInt64   # Hash for detecting repetitions
     move_stack::Vector{ReversibleMove}  # Stack of reversible moves played
+    position_history::Vector{UInt64}  # Track history for repetition
+    halfmove_clock::Int  # Number of moves since last capture or man move
+    
     outcome::Union{Nothing, Int8}  # Nothing if game ongoing, 1 = white wins, -1 = black wins, 0 = draw
     
     # Cached values for efficiency
@@ -38,6 +41,8 @@ function GI.init(::CheckersSpec)
         WHITE,
         0x0000000000000000,  # Initial hash
         Vector{ReversibleMove}(),
+        Vector{UInt64}(),
+        0,
         nothing,
         false,
         Vector{Bool}(undef, NUM_POSITIONS * NUM_POSITIONS)
@@ -77,23 +82,49 @@ GI.current_state(g::CheckersEnv) = (board=g.board, curplayer=g.side_to_move)
 GI.white_playing(g::CheckersEnv) = g.side_to_move == WHITE
 
 # Check if game is terminated
-GI.game_terminated(g::CheckersEnv) = is_game_over(g.board, g.side_to_move)
+GI.game_terminated(g::CheckersEnv) = is_game_over(g)
 
 # Get white player's reward
 function GI.white_reward(g::CheckersEnv)
     if !GI.game_terminated(g)
         return 0.0
     end
-    return get_white_reward(g.board, g.side_to_move)
+
+    # Use the outcome stored in the environment
+    if g.outcome === nothing
+        return 0.0
+    elseif g.outcome == Int8(1)
+        return 1.0  # White wins
+    elseif g.outcome == Int8(-1)
+        return -1.0  # Black wins
+    else
+        return 0.0  # Draw
+    end
 end
 
 # Apply a move in the environment
 function apply!(env::CheckersEnv, move::Move)
+    # Store current position hash before making the move
+    current_hash = hash((env.board, env.side_to_move))
+    push!(env.position_history, current_hash)
+
     # Create a reversible move with all necessary information for undo
-    reversible_move = create_reversible_move(env.board, move)
-    
+    reversible_move = create_reversible_move(env.board, move, env.halfmove_clock)
+
     # Store the reversible move on the stack for undo purposes
     push!(env.move_stack, reversible_move)
+
+    # Check if this move should reset the halfmove clock
+    # Reset for captures or man moves, increment for king-only moves
+    piece = env.board[move.from]
+    is_capture = !isempty(move.captures)
+    is_man_move = is_man(piece)
+
+    if is_capture || is_man_move
+        env.halfmove_clock = 0
+    else
+        env.halfmove_clock += 1
+    end
 
     # Update the board state with multi-captures and promotion
     env.board = apply_move(env.board, move)
@@ -111,10 +142,18 @@ end
 # Undo the last move for reversibility
 function undo!(env::CheckersEnv)
     # Pop the last move from the stack
-    move = pop!(env.move_stack)
+    reversible_move = pop!(env.move_stack)
+
+    # Remove the last position from history (the one we added when making this move)
+    if !isempty(env.position_history)
+        pop!(env.position_history)
+    end
+
+    # Restore the previous halfmove clock
+    env.halfmove_clock = reversible_move.previous_halfmove_clock
 
     # Reverse the move
-    env.board = revert_move(env.board, move)
+    env.board = revert_move(env.board, reversible_move)
 
     # Switch the side to move back
     env.side_to_move = !env.side_to_move
@@ -148,27 +187,67 @@ function GI.play!(g::CheckersEnv, action_idx::Int)
     apply!(g, actual_move)
 end
 
+# Check for threefold repetition draw
+function is_threefold_repetition(env::CheckersEnv)
+    counts = Dict{UInt64, Int}()
+    for hash in env.position_history
+        counts[hash] = get(counts, hash, 0) + 1
+        if counts[hash] >= 3
+            return true
+        end
+    end
+    return false
+end
+
+# Check for the forty-move rule draw
+function is_forty_move_rule(env::CheckersEnv)
+    return env.halfmove_clock >= 80
+end
+
+# Determine the winner of the game with draw conditions (environment version)
+function determine_winner(env::CheckersEnv)
+    # Check for draw conditions first
+    if is_threefold_repetition(env) || is_forty_move_rule(env)
+        return Int8(0)  # Draw
+    end
+
+    # Check for regular win/loss conditions
+    board = env.board
+    current_player = env.side_to_move
+
+    # A player loses if they have no pieces or no legal moves
+    if !has_pieces(board, current_player) || !has_legal_moves(board, current_player)
+        return current_player == WHITE ? Int8(-1) : Int8(1)  # The other player wins
+    end
+
+    opponent = !current_player
+    if !has_pieces(board, opponent) || !has_legal_moves(board, opponent)
+        return current_player == WHITE ? Int8(1) : Int8(-1)  # Current player wins
+    end
+
+    return nothing  # Game not over
+end
+
+# Check if the game is over (environment version with draw conditions)
+function is_game_over(env::CheckersEnv)
+    return !isnothing(determine_winner(env))
+end
+
 # Helper function to update game state after a move
 function update_game_state!(g::CheckersEnv)
     # Update repetition hash
     g.repetition_hash = hash((g.board, g.side_to_move))
-    
-    # Check if game is finished
-    if is_game_over(g.board, g.side_to_move)
+
+    # Check if game is finished (using environment-based function that checks draws)
+    if is_game_over(g)
         g.finished = true
-        winner = determine_winner(g.board, g.side_to_move)
-        if winner === nothing
-            g.outcome = Int8(0)  # Draw
-        elseif winner == WHITE
-            g.outcome = Int8(1)  # White wins
-        else
-            g.outcome = Int8(-1)  # Black wins
-        end
+        outcome = determine_winner(g)
+        g.outcome = outcome
     else
         g.finished = false
         g.outcome = nothing
     end
-    
+
     # Update actions mask
     g.actions_mask = get_action_mask(g.board, g.side_to_move)
 end
