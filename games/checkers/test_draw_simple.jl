@@ -34,44 +34,7 @@ end
 
 include("game.jl")
 
-function test_forty_move_rule()
-    println("Testing forty-move rule...")
-    
-    # Initialize game
-    spec = CheckersSpec()
-    env = GI.init(spec)
-    
-    # Manually set halfmove_clock to test the rule
-    env.halfmove_clock = 79
-    
-    # Check that it's not a draw yet
-    if is_forty_move_rule(env)
-        error("Test failed: Should not be forty-move rule at 79 moves")
-    end
-    if is_game_over(env)
-        error("Test failed: Game should not be over at 79 moves")
-    end
-    
-    # Increment to 80 (forty moves)
-    env.halfmove_clock = 80
-    
-    # Check that it's now a draw
-    if !is_forty_move_rule(env)
-        error("Test failed: Should be forty-move rule at 80 moves")
-    end
-    if !is_game_over(env)
-        error("Test failed: Game should be over due to forty-move rule")
-    end
-    
-    # Check that determine_winner returns draw
-    outcome = determine_winner(env)
-    if outcome != Int8(0)
-        error("Test failed: Expected draw (0), got $outcome")
-    end
-    
-    println("✓ Forty-move rule test passed!")
-    return true
-end
+# Forty-move rule test removed - the forty-move rule has been removed from the checkers implementation
 
 function test_threefold_repetition()
     println("Testing threefold repetition...")
@@ -213,7 +176,6 @@ function run_all_tests()
     println("Running draw condition tests...")
     
     tests = [
-        test_forty_move_rule,
         test_threefold_repetition,
         test_halfmove_clock_updates,
         test_position_history_tracking

@@ -145,16 +145,14 @@ function generate_all_moves(board::Board, player::Player)
             captures = generate_capture_moves(board, pos)
             append!(capture_moves, captures)
             
-            # Generate simple moves
-            if isempty(captures)  # Only consider simple moves if no captures available
-                simples = generate_simple_moves(board, pos)
-                append!(simple_moves, simples)
-            end
+            # Generate simple moves (now allowed even if captures exist)
+            simples = generate_simple_moves(board, pos)
+            append!(simple_moves, simples)
         end
     end
     
-    # In checkers, captures are mandatory
-    return isempty(capture_moves) ? simple_moves : capture_moves
+    # Captures are no longer mandatory; include both capture and simple moves
+    return vcat(capture_moves, simple_moves)
 end
 
 # Check if a move is legal

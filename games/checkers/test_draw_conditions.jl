@@ -5,6 +5,15 @@ include("Moves.jl")
 include("Rules.jl")
 include("Vectorization.jl")
 
+# Simple test macro since we can't import Test
+macro test(expr)
+    quote
+        if !($expr)
+            error("Test failed: $($expr)")
+        end
+    end
+end
+
 # Mock the GI module for testing
 module GI
     abstract type AbstractGameSpec end
@@ -18,34 +27,7 @@ end
 
 include("game.jl")
 
-function test_forty_move_rule()
-    println("Testing forty-move rule...")
-    
-    # Initialize game
-    spec = CheckersSpec()
-    env = GI.init(spec)
-    
-    # Manually set halfmove_clock to test the rule
-    env.halfmove_clock = 79
-    
-    # Check that it's not a draw yet
-    @test !is_forty_move_rule(env)
-    @test !is_game_over(env)
-    
-    # Increment to 80 (forty moves)
-    env.halfmove_clock = 80
-    
-    # Check that it's now a draw
-    @test is_forty_move_rule(env)
-    @test is_game_over(env)
-    
-    # Check that determine_winner returns draw
-    outcome = determine_winner(env)
-    @test outcome == Int8(0)  # Draw
-    
-    println("✓ Forty-move rule test passed!")
-    return true
-end
+# Forty-move rule test removed - the forty-move rule has been removed from the checkers implementation
 
 function test_threefold_repetition()
     println("Testing threefold repetition...")
@@ -285,53 +267,19 @@ function test_threefold_repetition_sequence()
     return true
 end
 
-function test_forty_move_sequence()
-    println("Testing forty-move rule sequence...")
-    spec = CheckersSpec()
-    env = GI.init(spec)
-
-    # Set up a position that will result in a forty-move rule draw
-    # This sequence should be long enough to ensure a draw
-    # For simplicity, let's assume a sequence of 80 moves, including captures
-    # and some kings becoming kings.
-    for i in 1:80
-        legal_moves = generate_all_moves(env.board, env.side_to_move)
-        if isempty(legal_moves)
-            println("No legal moves available for sequence move $i")
-            return false
-        end
-        move = legal_moves[1] # Take the first legal move
-        apply!(env, move)
-        # Add a small delay to ensure different hashes for repeated positions
-        sleep(0.001)
-    end
-
-    # Check if the position history has repeated
-    @test is_forty_move_rule(env)
-    @test is_game_over(env)
-    @test GI.game_terminated(env)
-
-    # Check that determine_winner returns draw
-    outcome = determine_winner(env)
-    @test outcome == Int8(0)  # Draw
-
-    println("✓ Forty-move rule sequence test passed!")
-    return true
-end
+# Forty-move rule sequence test removed - the forty-move rule has been removed from the checkers implementation
 
 function run_all_tests()
     println("Running draw condition tests...")
     
     tests = [
-        test_forty_move_rule,
         test_threefold_repetition,
         test_halfmove_clock_updates,
         test_position_history_tracking,
         test_halfmove_clock_king_increment,
         test_halfmove_clock_man_reset,
         test_halfmove_clock_capture_reset,
-        test_threefold_repetition_sequence,
-        test_forty_move_sequence
+        test_threefold_repetition_sequence
     ]
     
     passed = 0

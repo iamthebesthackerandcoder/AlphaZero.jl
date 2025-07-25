@@ -50,15 +50,7 @@ const INITIAL_BOARD = Board([
 const GameState = NamedTuple{(:board, :curplayer), Tuple{Board, Player}}
 const INITIAL_STATE = GameState((INITIAL_BOARD, WHITE))
 
-# Move representation
-struct Move
-    from::Int  # Source position (1-32)
-    to::Int    # Destination position (1-32)
-    captures::Vector{Int}  # Positions of captured pieces
-end
-
-# Simple move constructor
-Move(from::Int, to::Int) = Move(from, to, Int[])
+# Move representation is defined in Moves.jl
 
 # Utility functions for piece identification (for Int8)
 is_white_piece(piece::Int8) = piece == WHITE_MAN || piece == WHITE_KING

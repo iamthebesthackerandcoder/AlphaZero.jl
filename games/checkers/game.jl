@@ -8,12 +8,15 @@ struct CheckersSpec <: GI.AbstractGameSpec
     board_size::Int
     num_players::Int
     action_space_dim::Int
-    
+
     # Default constructor with standard checkers parameters
     function CheckersSpec()
         new(BOARD_SIZE, 2, NUM_POSITIONS * NUM_POSITIONS)
     end
 end
+
+# Alias for compatibility with AlphaZero.jl examples
+const GameSpec = CheckersSpec
 
 # Game environment
 mutable struct CheckersEnv <: GI.AbstractGameEnv
@@ -199,19 +202,12 @@ function is_threefold_repetition(env::CheckersEnv)
     return false
 end
 
-# Check for the forty-move rule draw
-function is_forty_move_rule(env::CheckersEnv)
-    return env.halfmove_clock >= 80
-end
+# Forty-move rule removed
 
 # Determine the winner of the game with draw conditions (environment version)
 function determine_winner(env::CheckersEnv)
-    # Check for draw conditions first
-    if is_threefold_repetition(env) || is_forty_move_rule(env)
-        return Int8(0)  # Draw
-    end
-
-    # Check for regular win/loss conditions
+    # Draw conditions removed: no draws allowed
+    # Check win/loss conditions
     board = env.board
     current_player = env.side_to_move
 
@@ -225,7 +221,7 @@ function determine_winner(env::CheckersEnv)
         return current_player == WHITE ? Int8(1) : Int8(-1)  # Current player wins
     end
 
-    return nothing  # Game not over
+    return nothing  # Game not over; no draw condition
 end
 
 # Check if the game is over (environment version with draw conditions)
