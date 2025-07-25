@@ -1,4 +1,4 @@
-# Training parameters for Checkers - optimized for CPU training
+# Training parameters for Checkers - optimized for GPU training
 
 using AlphaZero
 import ..GameSpec
@@ -6,7 +6,7 @@ import ..GameSpec
 # Game specification
 const game = GameSpec()
 
-# Neural network parameters - CPU optimized
+# Neural network parameters - GPU optimized
 Network = NetLib.SimpleNet
 
 netparams = NetLib.SimpleNetHP(
@@ -16,13 +16,13 @@ netparams = NetLib.SimpleNetHP(
     batch_norm_momentum=1.
 )
 
-# Self-play parameters - CPU optimized
+# Self-play parameters - now set to use GPU
 self_play = SelfPlayParams(
   sim=SimParams(
     num_games=100,              # Smaller batches for CPU
     num_workers=32,
     batch_size=32,
-    use_gpu=false,
+    use_gpu=true,               # <--- changed to true
     reset_every=4,
     flip_probability=0.,
     alternate_colors=false),
@@ -33,13 +33,13 @@ self_play = SelfPlayParams(
     dirichlet_noise_ϵ=0.25,
     dirichlet_noise_α=1.0))
 
-# Arena parameters for evaluation
+# Arena parameters for evaluation - now set to use GPU
 arena = ArenaParams(
   sim=SimParams(
     num_games=20,               # Fewer games for faster evaluation
     num_workers=20,
     batch_size=20,
-    use_gpu=false,
+    use_gpu=true,               # <--- changed to true
     reset_every=1,
     flip_probability=0.5,
     alternate_colors=true),
@@ -49,9 +49,9 @@ arena = ArenaParams(
     dirichlet_noise_ϵ=0.1),
   update_threshold=0.00)
 
-# Learning parameters - CPU optimized
+# Learning parameters - now set to use GPU
 learning = LearningParams(
-  use_gpu=false,              # CPU training
+  use_gpu=true,              # <--- changed to true
   samples_weighing_policy=LOG_WEIGHT,
   l2_regularization=1e-4,
   optimiser=CyclicNesterov(
@@ -79,11 +79,14 @@ params = Params(
   use_symmetries=false,       # Checkers doesn't have simple symmetries
   mem_buffer_size=PLSchedule(20_000))  # Smaller buffer for CPU
 
+# Benchmark simulation parameters - set use_gpu=true if needed
 benchmark_sim = SimParams(
   arena.sim;
   num_games=100,
   num_workers=20,
-  batch_size=20)
+  batch_size=20,
+  use_gpu=true,               # <--- add or change to true
+)
 
 benchmark = [
   Benchmark.Duel(
@@ -93,7 +96,8 @@ benchmark = [
   Benchmark.Duel(
     Benchmark.NetworkOnly(),
     Benchmark.MinMaxTS(depth=5, amplify_rewards=true, τ=1.),
-    benchmark_sim)]
+    benchmark_sim)
+]
 
 experiment = Experiment(
   "checkers", GameSpec(), params, Network, netparams, benchmark)
