@@ -1,20 +1,9 @@
 <p align="center">
   <img width="230px" src="./docs/src/assets/logo-text.png"/>
 </p>
-<p align="center">
-  <a href="https://jonathan-laurent.github.io/AlphaZero.jl/dev" alt="Dev">
-    <img src="https://img.shields.io/badge/docs-dev-blue.svg"/>
-  </a>
-  <a href="https://jonathan-laurent.github.io/AlphaZero.jl/stable" alt="Stable">
-    <img src="https://img.shields.io/badge/docs-stable-blue.svg"/>
-  </a>
-  <a href="https://travis-ci.com/jonathan-laurent/AlphaZero.jl" alt="Build Status">
-    <img src="https://travis-ci.com/jonathan-laurent/AlphaZero.jl.svg?branch=master"/>
-  </a>
-  <a href="https://codecov.io/gh/jonathan-laurent/AlphaZero.jl" alt="Codecov">
-    <img src="https://codecov.io/gh/jonathan-laurent/AlphaZero.jl/branch/master/graph/badge.svg"/>
-  </a>
-</p>
+
+> **Note**: This repository is based on the original [AlphaZero.jl](https://github.com/jonathan-laurent/AlphaZero.jl) project by Jonathan Laurent. For the most up-to-date documentation and official releases, please refer to the original repository.
+
 <br/>
 
 This package provides a _generic_, _simple_ and _fast_ implementation of
@@ -54,11 +43,11 @@ We found the [Julia language](https://julialang.org/) to be instrumental in achi
 
 ### Training a Connect Four Agent
 
-To download AlphaZero.jl and start training a Connect Four agent, just run:
+To download this AlphaZero.jl implementation and start training a Connect Four agent, just run:
 
 ```sh
 export GKSwstype=100  # To avoid an occasional GR bug
-git clone https://github.com/jonathan-laurent/AlphaZero.jl.git
+git clone https://github.com/iamthebesthackerandcoder/AlphaZero.jl.git
 cd AlphaZero.jl
 julia --project -e 'import Pkg; Pkg.instantiate()'
 julia --project -e 'using AlphaZero; Scripts.train("connect-four")'
@@ -107,9 +96,11 @@ Unsurprisingly, the network alone is initially unable to win a single game.
 However, it ends up significantly stronger than the minmax baseline despite not
 being able to perform any search.
 
-For more information on training a Connect Four agent using AlphaZero.jl, see our full [tutorial](https://jonathan-laurent.github.io/AlphaZero.jl/dev/tutorial/connect_four/).
+For more information on training a Connect Four agent using AlphaZero.jl, see the full [tutorial](https://jonathan-laurent.github.io/AlphaZero.jl/dev/tutorial/connect_four/) from the original project.
 
 ### Resources
+
+**Note**: The following resources are from the original AlphaZero.jl project and provide comprehensive documentation and tutorials:
 
 - [JuliaCon 2021 Talk](https://www.youtube.com/watch?v=nbLmR0aDumo)
 - [Documentation Home](https://jonathan-laurent.github.io/AlphaZero.jl/dev/)
@@ -119,7 +110,9 @@ For more information on training a Connect Four agent using AlphaZero.jl, see ou
 - [Solving Your Own Games](https://jonathan-laurent.github.io/AlphaZero.jl/dev/tutorial/own_game/)
 - [Hyperparameters Documentation](https://jonathan-laurent.github.io/AlphaZero.jl/dev/reference/params/)
 
-### Contributors
+### Original Contributors
+
+This implementation is based on the original AlphaZero.jl project. The original contributors include:
 
 * Jonathan Laurent: main developer
 * Pavel Dimens: logo design
@@ -127,9 +120,9 @@ For more information on training a Connect Four agent using AlphaZero.jl, see ou
 * Michał Łukomski: Mancala example, OpenSpiel wrapper
 * Johannes Fischer: documentation improvements
 
-Contributions to AlphaZero.jl are most welcome. Many contribution ideas are available in our [contribution guide](https://jonathan-laurent.github.io/AlphaZero.jl/dev/contributing/guide/).
-Please do not hesitate to open a Github
-[issue](https://github.com/jonathan-laurent/AlphaZero.jl/issues) to share
+Contributions to this repository are welcome. For comprehensive contribution guidelines, see the [contribution guide](https://jonathan-laurent.github.io/AlphaZero.jl/dev/contributing/guide/) from the original project.
+Please feel free to open a Github
+[issue](https://github.com/iamthebesthackerandcoder/AlphaZero.jl/issues) to share
 any idea, feedback or suggestion.
 
 
